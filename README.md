@@ -8,3 +8,4 @@ Run it And it will ask for a token Get your Token Then Get the Server you want t
 Your All SetUp Now.
 Made by LucidHacker#9999 
 My Discord Server: https://discord.gg/zupKSnyRNg
+<img width="775" alt="image" src="https://user-images.githubusercontent.com/109225476/180498969-38ad778e-e43f-458b-aef1-bca18eeb56c9.png">
