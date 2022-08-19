@@ -1,11 +1,11 @@
-mytitle = "Lua Cloner - Developed by LucidHacker#9999"
+mytitle = "Lucid Cloner "
 from os import system
 system("title "+mytitle)
 import psutil
 from pypresence import Presence
 import time
 import sys
-client_id = 'Your Account ID'
+start_time=time.time()
 import discord
 import asyncio
 import colorama
@@ -21,6 +21,8 @@ else:
     system("clear")
     print(chr(27) + "[2J")
 print(f"""{Fore.RED}
+
+
   ██╗     ██╗   ██╗ █████╗ ██╗██████╗
   ██║     ██║   ██║██╔══██╗██║██╔══██╗
   ██║     ██║   ██║██║  ╚═╝██║██║  ██║ 
@@ -28,7 +30,7 @@ print(f"""{Fore.RED}
   ███████╗╚██████╔╝╚█████╔╝██║██████╔╝  
   ╚══════╝ ╚═════╝  ╚════╝ ╚═╝╚═════╝ 
 {Style.RESET_ALL}
-                                                            {Fore.MAGENTA}Developed by: \n LucidHacker#9999{Style.RESET_ALL}
+                                                            {Fore.MAGENTA}Developed by: LucidHacker#9999{Style.RESET_ALL}
         """)
 token = input(f'Please enter your token:\n >')
 guild_s = input('Please enter guild id you want to copy:\n >')
@@ -55,12 +57,14 @@ async def on_ready():
     await Clone.categories_create(guild_to, guild_from)
     await Clone.channels_create(guild_to, guild_from)
     print(f"""{Fore.GREEN}
-  ██╗     ██╗   ██╗ █████╗ ██╗██████╗
-  ██║     ██║   ██║██╔══██╗██║██╔══██╗
-  ██║     ██║   ██║██║  ╚═╝██║██║  ██║ 
-  ██║     ██║   ██║██║  ██╗██║██║  ██║ 
-  ███████╗╚██████╔╝╚█████╔╝██║██████╔╝  
-  ╚══════╝ ╚═════╝  ╚════╝ ╚═╝╚═════╝ 
+
+
+░█████╗░██╗░░░░░░█████╗░███╗░░██╗███████╗██████╗░
+██╔══██╗██║░░░░░██╔══██╗████╗░██║██╔════╝██╔══██╗
+██║░░╚═╝██║░░░░░██║░░██║██╔██╗██║█████╗░░██║░░██║
+██║░░██╗██║░░░░░██║░░██║██║╚████║██╔══╝░░██║░░██║
+╚█████╔╝███████╗╚█████╔╝██║░╚███║███████╗██████╔╝
+░╚════╝░╚══════╝░╚════╝░╚═╝░░╚══╝╚══════╝╚═════╝░
 
     {Style.RESET_ALL}""")
     await asyncio.sleep(5)
