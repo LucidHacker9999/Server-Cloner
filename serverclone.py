@@ -1,102 +1,212 @@
-# Copyright Jonathan Hartley 2013. BSD 3-Clause license, see LICENSE file.
-'''
-This module generates ANSI character codes to printing colors to terminals.
-See: http://en.wikipedia.org/wiki/ANSI_escape_code
-'''
-
-CSI = '\033['
-OSC = '\033]'
-BEL = '\a'
+import discord
+from colorama import Fore, init, Style
 
 
-def code_to_chars(code):
-    return CSI + str(code) + 'm'
+def print_add(message):
+    print(f'{Fore.GREEN}[DONE]{Style.RESET_ALL} {message}')
 
-def set_title(title):
-    return OSC + '2;' + title + BEL
+def print_delete(message):
+    print(f'{Fore.RED}[DELETED]{Style.RESET_ALL} {message}')
 
-def clear_screen(mode=2):
-    return CSI + str(mode) + 'J'
-
-def clear_line(mode=2):
-    return CSI + str(mode) + 'K'
+def print_warning(message):
+    print(f'{Fore.RED}[WARN]{Style.RESET_ALL} {message}')
 
 
-class AnsiCodes(object):
-    def __init__(self):
-        # the subclasses declare class attributes which are numbers.
-        # Upon instantiation we define instance attributes, which are the same
-        # as the class attributes but wrapped with the ANSI escape sequence
-        for name in dir(self):
-            if not name.startswith('_'):
-                value = getattr(self, name)
-                setattr(self, name, code_to_chars(value))
+def print_error(message):
+    print(f'{Fore.RED}[ERROR]{Style.RESET_ALL} {message}')
 
 
-class AnsiCursor(object):
-    def UP(self, n=1):
-        return CSI + str(n) + 'A'
-    def DOWN(self, n=1):
-        return CSI + str(n) + 'B'
-    def FORWARD(self, n=1):
-        return CSI + str(n) + 'C'
-    def BACK(self, n=1):
-        return CSI + str(n) + 'D'
-    def POS(self, x=1, y=1):
-        return CSI + str(y) + ';' + str(x) + 'H'
+class Clone:
+    @staticmethod
+    async def roles_delete(guild_to: discord.Guild):
+            for role in guild_to.roles:
+                try:
+                    if role.name != "@everyone":
+                        await role.delete()
+                        print_delete(f"Deleted Role: {role.name}")
+                except discord.Forbidden:
+                    print_error(f"Error While Deleting Role: {role.name}")
+                except discord.HTTPException:
+                    print_error(f"Unable to Delete Role: {role.name}")
+
+    @staticmethod
+    async def roles_create(guild_to: discord.Guild, guild_from: discord.Guild):
+        roles = []
+        role: discord.Role
+        for role in guild_from.roles:
+            if role.name != "@everyone":
+                roles.append(role)
+        roles = roles[::-1]
+        for role in roles:
+            try:
+                await guild_to.create_role(
+                    name=role.name,
+                    permissions=role.permissions,
+                    colour=role.colour,
+                    hoist=role.hoist,
+                    mentionable=role.mentionable
+                )
+                print_add(f"Created Role {role.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Creating Role: {role.name}")
+            except discord.HTTPException:
+                print_error(f"Unable to Create Role: {role.name}")
+
+    @staticmethod
+    async def channels_delete(guild_to: discord.Guild):
+        for channel in guild_to.channels:
+            try:
+                await channel.delete()
+                print_delete(f"Deleted Channel: {channel.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Deleting Channel: {channel.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Delete Channel: {channel.name}")
+
+    @staticmethod
+    async def categories_create(guild_to: discord.Guild, guild_from: discord.Guild):
+        channels = guild_from.categories
+        channel: discord.CategoryChannel
+        new_channel: discord.CategoryChannel
+        for channel in channels:
+            try:
+                overwrites_to = {}
+                for key, value in channel.overwrites.items():
+                    role = discord.utils.get(guild_to.roles, name=key.name)
+                    overwrites_to[role] = value
+                new_channel = await guild_to.create_category(
+                    name=channel.name,
+                    overwrites=overwrites_to)
+                await new_channel.edit(position=channel.position)
+                print_add(f"Created Category: {channel.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Deleting Category: {channel.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Delete Category: {channel.name}")
+
+    @staticmethod
+    async def channels_create(guild_to: discord.Guild, guild_from: discord.Guild):
+        channel_text: discord.TextChannel
+        channel_voice: discord.VoiceChannel
+        category = None
+        for channel_text in guild_from.text_channels:
+            try:
+                for category in guild_to.categories:
+                    try:
+                        if category.name == channel_text.category.name:
+                            break
+                    except AttributeError:
+                        print_warning(f"Channel {channel_text.name} doesn't have any category!")
+                        category = None
+                        break
+
+                overwrites_to = {}
+                for key, value in channel_text.overwrites.items():
+                    role = discord.utils.get(guild_to.roles, name=key.name)
+                    overwrites_to[role] = value
+                try:
+                    new_channel = await guild_to.create_text_channel(
+                        name=channel_text.name,
+                        overwrites=overwrites_to,
+                        position=channel_text.position,
+                        topic=channel_text.topic,
+                        slowmode_delay=channel_text.slowmode_delay,
+                        nsfw=channel_text.nsfw)
+                except:
+                    new_channel = await guild_to.create_text_channel(
+                        name=channel_text.name,
+                        overwrites=overwrites_to,
+                        position=channel_text.position)
+                if category is not None:
+                    await new_channel.edit(category=category)
+                print_add(f"Created Text Channel: {channel_text.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Creating Text Channel: {channel_text.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Creating Text Channel: {channel_text.name}")
+            except:
+                print_error(f"Error While Creating Text Channel: {channel_text.name}")
+
+        category = None
+        for channel_voice in guild_from.voice_channels:
+            try:
+                for category in guild_to.categories:
+                    try:
+                        if category.name == channel_voice.category.name:
+                            break
+                    except AttributeError:
+                        print_warning(f"Channel {channel_voice.name} doesn't have any category!")
+                        category = None
+                        break
+
+                overwrites_to = {}
+                for key, value in channel_voice.overwrites.items():
+                    role = discord.utils.get(guild_to.roles, name=key.name)
+                    overwrites_to[role] = value
+                try:
+                    new_channel = await guild_to.create_voice_channel(
+                        name=channel_voice.name,
+                        overwrites=overwrites_to,
+                        position=channel_voice.position,
+                        bitrate=channel_voice.bitrate,
+                        user_limit=channel_voice.user_limit,
+                        )
+                except:
+                    new_channel = await guild_to.create_voice_channel(
+                        name=channel_voice.name,
+                        overwrites=overwrites_to,
+                        position=channel_voice.position)
+                if category is not None:
+                    await new_channel.edit(category=category)
+                print_add(f"Created Voice Channel: {channel_voice.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Creating Voice Channel: {channel_voice.name}")
+            except discord.HTTPException:
+                print_error(f"Unable To Creating Voice Channel: {channel_voice.name}")
+            except:
+                print_error(f"Error While Creating Voice Channel: {channel_voice.name}")
 
 
-class AnsiFore(AnsiCodes):
-    BLACK           = 30
-    RED             = 31
-    GREEN           = 32
-    YELLOW          = 33
-    BLUE            = 34
-    MAGENTA         = 35
-    CYAN            = 36
-    WHITE           = 37
-    RESET           = 39
+    @staticmethod
+    async def emojis_delete(guild_to: discord.Guild):
+        for emoji in guild_to.emojis:
+            try:
+                await emoji.delete()
+                print_delete(f"Deleted Emoji: {emoji.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Deleting Emoji{emoji.name}")
+            except discord.HTTPException:
+                print_error(f"Error While Deleting Emoji {emoji.name}")
 
-    # These are fairly well supported, but not part of the standard.
-    LIGHTBLACK_EX   = 90
-    LIGHTRED_EX     = 91
-    LIGHTGREEN_EX   = 92
-    LIGHTYELLOW_EX  = 93
-    LIGHTBLUE_EX    = 94
-    LIGHTMAGENTA_EX = 95
-    LIGHTCYAN_EX    = 96
-    LIGHTWHITE_EX   = 97
+    @staticmethod
+    async def emojis_create(guild_to: discord.Guild, guild_from: discord.Guild):
+        emoji: discord.Emoji
+        for emoji in guild_from.emojis:
+            try:
+                emoji_image = await emoji.url.read()
+                await guild_to.create_custom_emoji(
+                    name=emoji.name,
+                    image=emoji_image)
+                print_add(f"Created Emoji {emoji.name}")
+            except discord.Forbidden:
+                print_error(f"Error While Creating Emoji {emoji.name} ")
+            except discord.HTTPException:
+                print_error(f"Error While Creating Emoji {emoji.name}")
 
-
-class AnsiBack(AnsiCodes):
-    BLACK           = 40
-    RED             = 41
-    GREEN           = 42
-    YELLOW          = 43
-    BLUE            = 44
-    MAGENTA         = 45
-    CYAN            = 46
-    WHITE           = 47
-    RESET           = 49
-
-    # These are fairly well supported, but not part of the standard.
-    LIGHTBLACK_EX   = 100
-    LIGHTRED_EX     = 101
-    LIGHTGREEN_EX   = 102
-    LIGHTYELLOW_EX  = 103
-    LIGHTBLUE_EX    = 104
-    LIGHTMAGENTA_EX = 105
-    LIGHTCYAN_EX    = 106
-    LIGHTWHITE_EX   = 107
-
-
-class AnsiStyle(AnsiCodes):
-    BRIGHT    = 1
-    DIM       = 2
-    NORMAL    = 22
-    RESET_ALL = 0
-
-Fore   = AnsiFore()
-Back   = AnsiBack()
-Style  = AnsiStyle()
-Cursor = AnsiCursor()
+    @staticmethod
+    async def guild_edit(guild_to: discord.Guild, guild_from: discord.Guild):
+        try:
+            try:
+                icon_image = await guild_from.icon_url.read()
+            except discord.errors.DiscordException:
+                print_error(f"Can't read icon image from {guild_from.name}")
+                icon_image = None
+            await guild_to.edit(name=f'{guild_from.name}')
+            if icon_image is not None:
+                try:
+                    await guild_to.edit(icon=icon_image)
+                    print_add(f"Guild Icon Changed: {guild_to.name}")
+                except:
+                    print_error(f"Error While Changing Guild Icon: {guild_to.name}")
+        except discord.Forbidden:
+            print_error(f"Error While Changing Guild Icon: {guild_to.name}")
